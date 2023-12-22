@@ -3,14 +3,16 @@ import warnings
 import argparse
 from pycocotools.coco import COCO
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description="Assert a COCO Annotation Json File\n 1.")
+    parser = argparse.ArgumentParser(description="Assert a COCO Annotation Json File")
     parser.add_argument("json", type=str, help="COCO Annotation Json File")
     parser.add_argument("--dirs", "-d", type=str, nargs="*", help="Image File Folder")
-    parser.add_argument("--root", "-r", default=".", type=str, help="Dataset Root")
+    parser.add_argument("--root", "-r", type=str, default=".", help="Dataset Root")
     parser.add_argument("--stop", "-s", action="store_true", help="Assert Mode")
     args = parser.parse_args()
     return args
+
 
 def main():
     args = parse_args()
@@ -37,7 +39,7 @@ def main():
         if file_list is not None and img_info[0]["file_name"] not in file_list:
             valid = False
             warnings.warn(f"Missing File in Image {img_id}")
-        
+
         # Check if each image in 'images' has corresponding annotation
         anns_info = coco.getAnnIds(imgIds=[img_id])
         if len(anns_info) == 0:
@@ -52,6 +54,6 @@ def main():
             "Assertions passed. All images in the COCO JSON file and corresponding files in the image folder are valid."
         )
 
+
 if __name__ == "__main__":
     main()
-    

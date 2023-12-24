@@ -1,9 +1,13 @@
-import os
-import warnings
 import argparse
 from pycocotools.coco import COCO
 import json
 from pprint import pprint
+
+"""
+    Example:
+    cd $ProjectRoot
+    python .\tools\extract.py .\demo\dataset\demo.json --output .\demo\dataset\ex1.json -cids 1 2 -cnms category_4
+"""
 
 
 def parse_args():
@@ -12,14 +16,15 @@ def parse_args():
     parser.add_argument(
         "--cat-nms",
         "-cnms",
+        nargs="+",
         type=str,
-        default=".",
         help="category names needs to extract",
     )
     parser.add_argument(
         "--cat-ids",
         "-cids",
-        action="store_true",
+        nargs="+",
+        type=int,
         help="category ids need to extract",
     )
     parser.add_argument(
@@ -45,21 +50,27 @@ def getIdsMapping(ids):
 
 
 def main():
-    json_file_path = r"D:\git\CoCoDatasetTools\demo\dataset\demo.json"
-    output = r"D:\git\CoCoDatasetTools\demo\dataset\extract.json"
-    reset = True
-    catIds = [1]
-    catNms = ["category_3"]
+    args = parse_args()
+    json_file_path = args.json
+    output = args.output
+    reset = args.reset_id
+    catIds = args.cat_ids
+    catNms = args.cat_nms
+
     coco = COCO(json_file_path)
     catIds = list(set(catIds).union(set(coco.getCatIds(catNms=catNms))))
 
     categories = coco.loadCats(ids=catIds)
-    print("Extract Catetories:")
+    print("Extracted Catetories:")
     pprint(categories)
     ann_ids = coco.getAnnIds(catIds=catIds)
     annotations = coco.loadAnns(ann_ids)
-    image_ids = sorted(coco.getImgIds(catIds=catIds))
+    image_ids = [coco.catToImgs[cat_id] for cat_id in catIds]
+    image_ids = sorted(set([id for imageIds in image_ids for id in imageIds]))
     images = coco.loadImgs(image_ids)
+    print(f"Extracted Images' Number: {len(images)}")
+    print(f"Extracted Annotations' Number: {len(annotations)}")
+
     if reset:
         cat_ids_mapping = getIdsMapping(catIds)
         img_ids_mapping = getIdsMapping(image_ids)
@@ -82,43 +93,6 @@ def main():
 
     with open(output, "w") as json_file:
         json.dump(new_json, json_file, indent=4)
-
-
-# file_list = None
-# if args.dirs is not None:
-#     print("reading image folder")
-#     file_list = []
-#     for path in args.dirs:
-#         file_list.extend(os.listdir(os.path.join(args.root, path)))
-#     print(f"{len(file_list)} contained in folders")
-
-# valid = True
-# for img_id in coco.getImgIds():
-#     img_info = coco.loadImgs(ids=img_id)
-
-#     # TODO：Duplicate ID assert
-#     # if len(img_info) > 1:
-#     #     valid = False
-#     #     warnings.warn(f"Duplicate ID in Image {img_id}")
-
-#     # Check if each image file exists
-#     if file_list is not None and img_info[0]["file_name"] not in file_list:
-#         valid = False
-#         warnings.warn(f"Missing File in Image {img_id}")
-
-#     # Check if each image in 'images' has corresponding annotation
-#     anns_info = coco.getAnnIds(imgIds=[img_id])
-#     if len(anns_info) == 0:
-#         valid = False
-#         warnings.warn(f"Missing Annotations in Image {img_id}")
-
-#     if args.stop and not valid:
-#         raise AssertionError(f"Assert Error in Image {img_id}")
-
-# if valid:
-#     print(
-#         "Assertions passed. All images in the COCO JSON file and corresponding files in the image folder are valid."
-#     )
 
 
 if __name__ == "__main__":

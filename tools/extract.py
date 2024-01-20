@@ -85,7 +85,7 @@ def main():
             category["id"] = cat_ids_mapping[category["id"]]
 
     new_json = {
-        "info": coco.info(),
+        "info": coco.dataset['info'] if "info" in coco.dataset.keys() else "",
         "categories": categories,
         "images": images,
         "annotations": annotations,

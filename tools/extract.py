@@ -1,6 +1,7 @@
 import argparse
 from pycocotools.coco import COCO
 import json
+import random
 from pprint import pprint
 
 """
@@ -41,6 +42,13 @@ def parse_args():
         action="store_true",
         help="split ratio for train, val and test",
     )
+    parser.add_argument(
+        "--ratio",
+        "-ratio",
+        type=float,
+        default=1.0,
+        help="extract ratio",
+    )
     args = parser.parse_args()
     return args
 
@@ -56,18 +64,25 @@ def main():
     reset = args.reset_id
     catIds = args.cat_ids
     catNms = args.cat_nms
+    ratio = args.ratio
 
     coco = COCO(json_file_path)
-    catIds = list(set(catIds).union(set(coco.getCatIds(catNms=catNms))))
+    if catIds is None and catNms is None:
+        catIds=coco.getCatIds()
+    else:
+        catIds = list(set(catIds).union(set(coco.getCatIds(catNms=catNms))))
 
     categories = coco.loadCats(ids=catIds)
     print("Extracted Catetories:")
     pprint(categories)
-    ann_ids = coco.getAnnIds(catIds=catIds)
-    annotations = coco.loadAnns(ann_ids)
-    image_ids = [coco.catToImgs[cat_id] for cat_id in catIds]
+    image_ids = [
+        random.sample(coco.catToImgs[cat_id], int(len(coco.catToImgs[cat_id]) * ratio))
+        for cat_id in catIds
+    ]
     image_ids = sorted(set([id for imageIds in image_ids for id in imageIds]))
     images = coco.loadImgs(image_ids)
+    ann_ids = coco.getAnnIds(imgIds=image_ids,catIds=catIds)
+    annotations = coco.loadAnns(ann_ids)
     print(f"Extracted Images' Number: {len(images)}")
     print(f"Extracted Annotations' Number: {len(annotations)}")
 
@@ -85,7 +100,7 @@ def main():
             category["id"] = cat_ids_mapping[category["id"]]
 
     new_json = {
-        "info": coco.dataset['info'] if "info" in coco.dataset.keys() else "",
+        "info": coco.dataset["info"] if "info" in coco.dataset.keys() else "",
         "categories": categories,
         "images": images,
         "annotations": annotations,
